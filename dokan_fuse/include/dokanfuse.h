@@ -33,6 +33,9 @@ struct fuse_config
   int setsignals;
   unsigned int timeoutInSec;
   int networkDrive;
+  int mountManager;
+  int currentSession;
+  int optimizeSingleNameSearch;
   unsigned long allocationUnitSize;
   unsigned long sectorSize;
 };

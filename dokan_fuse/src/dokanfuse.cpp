@@ -528,6 +528,15 @@ int do_fuse_loop(struct fuse *fs, bool mt) {
   if (fs->conf.readonly)
     dokanOptions->Options |= DOKAN_OPTION_WRITE_PROTECT;
 
+  if (fs->conf.mountManager)
+    dokanOptions->Options |= DOKAN_OPTION_MOUNT_MANAGER;
+
+  if (fs->conf.currentSession)
+    dokanOptions->Options |= DOKAN_OPTION_CURRENT_SESSION;
+
+  if (fs->conf.optimizeSingleNameSearch)
+    dokanOptions->Options |= DOKAN_OPTION_OPTIMIZE_SINGLE_NAME_SEARCH;
+
   // Load Dokan DLL
   if (!fs->ch->init()) {
     free(dokanOptions);
@@ -598,6 +607,11 @@ static const struct fuse_opt fuse_lib_opts[] = {
     FUSE_LIB_OPT("daemon_timeout=%d", timeoutInSec, 0),
     FUSE_LIB_OPT("alloc_unit_size=%lu", allocationUnitSize, 0),
     FUSE_LIB_OPT("sector_size=%lu", sectorSize, 0),
+    FUSE_LIB_OPT("mount_manager", mountManager, 1),
+    FUSE_LIB_OPT("current_session", currentSession, 1),
+    FUSE_LIB_OPT("optimize_sns", optimizeSingleNameSearch, 1),
+    FUSE_LIB_OPT("no_optimize_sns", optimizeSingleNameSearch, 0),
+    FUSE_LIB_OPT("netdrive", networkDrive, 1),
     FUSE_LIB_OPT("-n", networkDrive, 1),
     FUSE_OPT_END};
 
@@ -614,7 +628,10 @@ static void fuse_lib_help(void) {
       "    -o daemon_timeout=M    set timeout in seconds\n"
       "    -o alloc_unit_size=M   set allocation unit size\n"
       "    -o sector_size=M       set sector size\n"
-      "    -n                     use network drive\n"
+      "    -n, -o netdrive        use network drive\n"
+      "    -o mount_manager       use mount manager\n"
+      "    -o current_session     mount for current session only\n"
+      "    -o [no_]optimize_sns   optimize single name search. Default is off.\n"
       "\n");
 }
 
@@ -705,7 +722,13 @@ struct fuse *fuse_new(struct fuse_chan *ch, struct fuse_args *args,
   // Get debug param and filesystem name
   if (fuse_opt_parse(args, &res->conf, fuse_lib_opts, fuse_lib_opt_proc) == -1)
     return nullptr;
-  // res->conf.debug=1;
+
+  // Check for invalid argument combinations
+  if(res->conf.mountManager && res->conf.networkDrive)
+    return nullptr;
+
+  if(res->conf.mountManager && res->conf.currentSession)
+    return nullptr;
 
   return res.release();
 }
